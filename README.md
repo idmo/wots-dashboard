@@ -115,17 +115,46 @@ up for real (Ingram's stock API can return lead-time estimates).
 
 ## Hosting
 
-The PRD suggests a Hostinger VPS running Docker containers (app + Postgres
-+ Nginx/Caddy reverse proxy). That works fine with this codebase as-is —
-`docker-compose.yml` gives you the Postgres half; add a container for
-`next build && next start` and a reverse proxy in front of it with your own
-`Dockerfile` when you're ready to deploy that way.
+### Docker (e.g. a Hostinger VPS)
+
+`docker-compose.yml` + `Dockerfile` build and run the whole stack — the
+Next.js app (multi-stage build, using Next's `output: "standalone"`) and
+Postgres:
+
+```bash
+docker compose up -d --build
+docker compose exec app npm run db:push   # first deploy only: create tables
+```
+
+The app listens on port 3000 inside the container, published to the host
+as `3000:3000` — reach it at `http://<server-ip>:3000`.
+
+A couple of things worth knowing if you're deploying this through
+Hostinger's Docker Manager panel specifically: that panel's "paste a
+docker-compose.yml" flow is built around pulling **pre-built images** (from
+Docker Hub, etc.), not building custom source with `build: .` — it doesn't
+have your app's source code to build from unless you put it there first.
+The reliable path is to SSH into the VPS, `git clone` this repo (or copy
+it over some other way) so the Dockerfile and source are actually on the
+server's filesystem, and run `docker compose up -d --build` from an SSH
+session — the containers it starts still show up and can be managed in the
+Docker Manager panel afterward, same as anything else deployed with
+`docker compose`. Set a real `POSTGRES_PASSWORD` (see the comment at the
+top of `docker-compose.yml`) before this is reachable from the open
+internet — the default is a placeholder for local dev only.
+
+Not covered yet: a domain name and HTTPS. Hostinger's Docker Manager
+doesn't handle either — the PRD's original suggestion of an Nginx/Caddy
+reverse-proxy container in front of `app` is the natural next step once
+there's a domain pointed at the VPS.
+
+### Vercel
 
 A lower-maintenance alternative for a small independent bookstore: deploy
 the Next.js app to **Vercel** and point `DATABASE_URL` at a managed
 Postgres such as **Neon** or **Supabase** (both have generous free tiers).
 Nothing in the app needs to change either way — it's just an environment
-variable.
+variable, and Vercel doesn't use the Dockerfile at all.
 
 ## Environment variables
 

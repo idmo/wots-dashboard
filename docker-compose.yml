@@ -1,17 +1,24 @@
-# Local/self-hosted Postgres for development, or as a starting point for a
-# Docker Compose deployment (e.g., on a Hostinger-style VPS). The app itself
-# is intentionally host-agnostic — see README.md for Vercel + managed
-# Postgres as the low-maintenance alternative.
+# Runs the whole app: Postgres + the Next.js app built from this repo's
+# own Dockerfile. Works both for local dev (`docker compose up --build`)
+# and as the compose file to run directly on a Docker VPS like Hostinger's.
+#
+# Override the password via a .env file next to this one (see below) rather
+# than editing the hardcoded default — especially before this is reachable
+# from the open internet.
+#   echo "POSTGRES_PASSWORD=something-long-and-random" > .env
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: wots_orders
-    ports:
-      - "5432:5432"
+    # Intentionally NOT publishing 5432 to the host here — the app reaches
+    # Postgres over the private compose network via the "db" hostname. If
+    # you want to connect a GUI client (e.g. Drizzle Studio, TablePlus)
+    # from your own machine, add "ports: [\"5432:5432\"]" back temporarily,
+    # or better, tunnel over SSH instead of exposing it publicly.
     volumes:
       - wots_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,6 +26,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/wots_orders
+      INGRAM_MOCK: "true"
+      BASIL_MOCK: "true"
+    ports:
+      - "3000:3000"
 
 volumes:
   wots_db_data:
