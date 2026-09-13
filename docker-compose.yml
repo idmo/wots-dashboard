@@ -40,5 +40,29 @@ services:
     ports:
       - "3000:3000"
 
+  # Runs Drizzle Kit (`db:push`/`db:studio`/etc.) against the same Postgres
+  # the app uses. Deliberately built from the Dockerfile's "builder" stage,
+  # not the "app" service's image: the app image is Next's trimmed
+  # standalone output, which only carries the production dependencies the
+  # server actually imports — drizzle-kit is a devDependency and isn't in
+  # it. The "builder" stage still has the full node_modules (including
+  # devDependencies) and full source needed to run the CLI.
+  #
+  # Has "profiles: [tools]" so it never starts on a plain `docker compose
+  # up` — only when named directly, e.g.:
+  #   docker compose run --rm migrate                       # db:push
+  #   docker compose run --rm migrate npx drizzle-kit studio
+  migrate:
+    build:
+      context: .
+      target: builder
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/wots_orders
+    command: ["npx", "drizzle-kit", "push"]
+
 volumes:
   wots_db_data:

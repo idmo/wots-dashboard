@@ -123,11 +123,23 @@ Postgres:
 
 ```bash
 docker compose up -d --build
-docker compose exec app npm run db:push   # first deploy only: create tables
+docker compose run --rm migrate   # first deploy, and again after any schema change
 ```
 
 The app listens on port 3000 inside the container, published to the host
 as `3000:3000` — reach it at `http://<server-ip>:3000`.
+
+`db:push` (and any other Drizzle Kit command — `db:studio`, `db:generate`)
+has to run via the `migrate` service, not `docker compose exec app ...`:
+the `app` container is Next's trimmed standalone output, which only
+includes the production dependencies the server actually imports, and
+`drizzle-kit` is a devDependency — it's genuinely not in that image
+(`drizzle-kit: not found` if you try). `migrate` is built from an earlier,
+fuller stage of the same Dockerfile that still has it, and only runs when
+named directly (`profiles: [tools]` keeps it out of a plain `docker compose
+up`), so it starts, runs the command, and exits — that's expected, not a
+crash. Swap the trailing command for anything else Drizzle Kit offers:
+`docker compose run --rm migrate npx drizzle-kit studio`.
 
 A couple of things worth knowing if you're deploying this through
 Hostinger's Docker Manager panel specifically: that panel's "paste a
