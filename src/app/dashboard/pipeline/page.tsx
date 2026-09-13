@@ -29,6 +29,9 @@ type FlatItem = {
 };
 
 type Tab = "kanban" | "table" | "rekey";
+type SortKey = "orderId" | "title" | "status" | "quantity" | "subtotal";
+
+const STATUS_SORT_ORDER: LineItemStatus[] = [...LINE_ITEM_PIPELINE_ORDER, "cancelled"];
 
 export default function PipelinePage() {
   const [items, setItems] = useState<FlatItem[]>([]);
@@ -37,6 +40,11 @@ export default function PipelinePage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<LineItemStatus>("ordered");
   const [stock, setStock] = useState<Record<string, IngramStockResult>>({});
+  const [sortKey, setSortKey] = useState<SortKey>("orderId");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [statusFilter, setStatusFilter] = useState<Set<LineItemStatus>>(
+    () => new Set(LINE_ITEM_STATUSES)
+  );
 
   async function fetchItems(): Promise<FlatItem[]> {
     const res = await fetch("/api/orders");
@@ -80,6 +88,50 @@ export default function PipelinePage() {
   }, []);
 
   const approvedItems = useMemo(() => items.filter((i) => i.status === "approved"), [items]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  function toggleStatusFilter(status: LineItemStatus) {
+    setStatusFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  }
+
+  const tableItems = useMemo(() => {
+    const filtered = items.filter((i) => statusFilter.has(i.status));
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "orderId":
+          cmp = a.orderId - b.orderId;
+          break;
+        case "title":
+          cmp = a.title.localeCompare(b.title);
+          break;
+        case "status":
+          cmp = STATUS_SORT_ORDER.indexOf(a.status) - STATUS_SORT_ORDER.indexOf(b.status);
+          break;
+        case "quantity":
+          cmp = a.quantity - b.quantity;
+          break;
+        case "subtotal":
+          cmp = Number(a.subtotal) - Number(b.subtotal);
+          break;
+      }
+      return cmp * dir;
+    });
+  }, [items, statusFilter, sortKey, sortDir]);
 
   useEffect(() => {
     if (tab !== "rekey" || approvedItems.length === 0) return;
@@ -213,20 +265,67 @@ export default function PipelinePage() {
                 Apply to selected
               </Button>
             </div>
+
+            <div className="flex flex-wrap items-center gap-2 border-t border-stone-100 pt-3">
+              <span className="text-xs font-medium uppercase tracking-wide text-stone-400">
+                Show statuses
+              </span>
+              {LINE_ITEM_STATUSES.map((s) => (
+                <label
+                  key={s}
+                  className={cx(
+                    "flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                    statusFilter.has(s)
+                      ? "border-stone-300 bg-stone-100 text-stone-700"
+                      : "border-stone-200 bg-white text-stone-400"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5"
+                    checked={statusFilter.has(s)}
+                    onChange={() => toggleStatusFilter(s)}
+                  />
+                  {LINE_ITEM_STATUS_LABELS[s]}
+                </label>
+              ))}
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-stone-100 text-left text-xs uppercase text-stone-400">
                     <th className="py-2"></th>
-                    <th className="py-2">Order</th>
-                    <th className="py-2">Title</th>
-                    <th className="py-2">Status</th>
-                    <th className="py-2 text-right">Qty</th>
-                    <th className="py-2 text-right">Subtotal</th>
+                    <SortHeader label="Order" sortKey="orderId" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortHeader label="Title" sortKey="title" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortHeader label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortHeader
+                      label="Qty"
+                      sortKey="quantity"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={toggleSort}
+                      align="right"
+                    />
+                    <SortHeader
+                      label="Subtotal"
+                      sortKey="subtotal"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={toggleSort}
+                      align="right"
+                    />
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => (
+                  {tableItems.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-4 text-center text-stone-400">
+                        No line items match the selected statuses.
+                      </td>
+                    </tr>
+                  )}
+                  {tableItems.map((item) => (
                     <tr key={item.id} className="border-b border-stone-50">
                       <td className="py-2">
                         <input
@@ -313,5 +412,38 @@ export default function PipelinePage() {
         </Card>
       )}
     </div>
+  );
+}
+
+function SortHeader({
+  label,
+  sortKey,
+  activeKey,
+  dir,
+  onSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey: SortKey;
+  activeKey: SortKey;
+  dir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+  align?: "left" | "right";
+}) {
+  const active = sortKey === activeKey;
+  return (
+    <th className={cx("py-2", align === "right" && "text-right")}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={cx(
+          "inline-flex items-center gap-1 hover:text-stone-700",
+          active ? "text-stone-700" : "text-stone-400"
+        )}
+      >
+        {label}
+        <span className="text-[10px]">{active ? (dir === "asc" ? "▲" : "▼") : ""}</span>
+      </button>
+    </th>
   );
 }

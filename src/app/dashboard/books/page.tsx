@@ -1,9 +1,13 @@
 import { ilike } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { Card, CardBody } from "@/components/ui/Card";
-import { formatCurrency } from "@/lib/utils";
+import { BooksTable } from "@/components/books/BooksTable";
 
 // Book catalog list view — search by title, with order-demand at a glance.
+// Rows are editable in place for back-office data cleanup (fix a spelling,
+// rerun the ISBN/cover lookup, correct the price).
+export const dynamic = "force-dynamic";
+
 export default async function BooksPage({ searchParams }: PageProps<"/dashboard/books">) {
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q : "";
@@ -18,9 +22,9 @@ export default async function BooksPage({ searchParams }: PageProps<"/dashboard/
     db.select({ bookId: schema.orderItems.bookId, quantity: schema.orderItems.quantity }).from(schema.orderItems),
   ]);
 
-  const orderedCountByBook = new Map<number, number>();
+  const orderedCountByBook: Record<number, number> = {};
   for (const item of orderItems) {
-    orderedCountByBook.set(item.bookId, (orderedCountByBook.get(item.bookId) ?? 0) + item.quantity);
+    orderedCountByBook[item.bookId] = (orderedCountByBook[item.bookId] ?? 0) + item.quantity;
   }
 
   return (
@@ -44,52 +48,7 @@ export default async function BooksPage({ searchParams }: PageProps<"/dashboard/
 
       <Card>
         <CardBody className="overflow-x-auto p-0">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-b border-stone-100 bg-stone-50 text-left text-xs uppercase text-stone-400">
-                <th className="px-4 py-2"></th>
-                <th className="px-4 py-2">Title</th>
-                <th className="px-4 py-2">Author</th>
-                <th className="px-4 py-2">Genre</th>
-                <th className="px-4 py-2">Binding</th>
-                <th className="px-4 py-2">ISBN</th>
-                <th className="px-4 py-2 text-right">Price</th>
-                <th className="px-4 py-2 text-right">Times ordered</th>
-              </tr>
-            </thead>
-            <tbody>
-              {books.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-stone-400">
-                    No books found.
-                  </td>
-                </tr>
-              )}
-              {books.map((b) => (
-                <tr key={b.id} className="border-b border-stone-50 hover:bg-stone-50">
-                  <td className="px-4 py-2">
-                    <div className="flex h-12 w-9 items-center justify-center overflow-hidden rounded bg-stone-100 text-[9px] text-stone-400">
-                      {b.thumbnailUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={b.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        "No cover"
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 font-medium">{b.title}</td>
-                  <td className="px-4 py-2 text-stone-500">
-                    {b.bookAuthors.map((ba) => ba.author.name).join(", ") || "—"}
-                  </td>
-                  <td className="px-4 py-2 text-stone-500">{b.genre ?? "—"}</td>
-                  <td className="px-4 py-2 text-stone-500">{b.binding}</td>
-                  <td className="px-4 py-2 text-stone-500">{b.isbn13 ?? "—"}</td>
-                  <td className="px-4 py-2 text-right">{formatCurrency(b.retailPrice)}</td>
-                  <td className="px-4 py-2 text-right">{orderedCountByBook.get(b.id) ?? 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <BooksTable books={books} orderedCountByBook={orderedCountByBook} />
         </CardBody>
       </Card>
     </div>

@@ -1,11 +1,13 @@
-import Link from "next/link";
 import { desc, ilike, or } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { Card, CardBody } from "@/components/ui/Card";
-import { formatDate } from "@/lib/utils";
+import { CustomersTable } from "@/components/customers/CustomersTable";
 
 // Customer list view — search by name/email/phone, with pickup reliability
-// at a glance (PRD 7.2 "Customer Reliability Analytics").
+// at a glance (PRD 7.2 "Customer Reliability Analytics"). Rows are editable
+// in place for back-office data cleanup.
+export const dynamic = "force-dynamic";
+
 export default async function CustomersPage({ searchParams }: PageProps<"/dashboard/customers">) {
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q : "";
@@ -43,46 +45,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/dashbo
 
       <Card>
         <CardBody className="overflow-x-auto p-0">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr className="border-b border-stone-100 bg-stone-50 text-left text-xs uppercase text-stone-400">
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Email</th>
-                <th className="px-4 py-2">Phone</th>
-                <th className="px-4 py-2 text-right">Orders</th>
-                <th className="px-4 py-2 text-right">Fulfilled</th>
-                <th className="px-4 py-2 text-right">Abandoned</th>
-                <th className="px-4 py-2">Customer since</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-stone-400">
-                    No customers found.
-                  </td>
-                </tr>
-              )}
-              {customers.map((c) => (
-                <tr key={c.id} className="border-b border-stone-50 hover:bg-stone-50">
-                  <td className="px-4 py-2">
-                    <Link
-                      href={`/dashboard/orders?q=${encodeURIComponent(c.name)}`}
-                      className="font-medium text-stone-900 underline underline-offset-2"
-                    >
-                      {c.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 text-stone-500">{c.email ?? "—"}</td>
-                  <td className="px-4 py-2 text-stone-500">{c.phone ?? "—"}</td>
-                  <td className="px-4 py-2 text-right">{c.totalOrders}</td>
-                  <td className="px-4 py-2 text-right">{c.fulfilledOrders}</td>
-                  <td className="px-4 py-2 text-right">{c.abandonedOrders}</td>
-                  <td className="px-4 py-2 text-stone-500">{formatDate(c.createdAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <CustomersTable customers={customers} />
         </CardBody>
       </Card>
     </div>

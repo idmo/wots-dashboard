@@ -52,6 +52,38 @@ export const featuredReaderInputSchema = z.object({
   state: z.string().optional(),
 });
 
+// PATCH /api/customers/[id] — back-office data cleanup (fix a typo'd name,
+// add a missed email/phone). Same shape as creation.
+export const customerUpdateSchema = customerInputSchema;
+
+// PATCH /api/books/[id] — back-office catalog cleanup: fix a misspelled
+// title/author, or rerun the OpenLibrary lookup and correct the price.
+// `authors` replaces the book's author links entirely (comma-separated
+// names in the UI, split client-side) — the rest of the app only ever
+// deals in a single author string, but this keeps parity with the
+// underlying many-to-many schema instead of forcing one author.
+export const bookUpdateSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  authors: z.array(z.string().min(1)).default([]),
+  genre: z.string().optional(),
+  binding: z.enum(["Paperback", "Hardcover"]),
+  isbn13: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  retailPrice: z.number().nonnegative().optional(),
+});
+
+// PATCH /api/featured-readers/[id] — same shape as creation.
+export const featuredReaderUpdateSchema = featuredReaderInputSchema;
+
+// PATCH /api/book-recommendations/[id] — correct a blurb or move a pick to
+// a different display period. The book/reader link isn't editable here —
+// delete and re-add the recommendation if it's tied to the wrong book.
+export const bookRecommendationUpdateSchema = z.object({
+  blurb: z.string().min(1, "Say a little about why you recommend it"),
+  featuredMonth: z.number().int().min(1).max(12).optional(),
+  featuredYear: z.number().int().min(2000).max(2100).optional(),
+});
+
 export const bookRecommendationInputSchema = z.object({
   featuredReaderId: z.number().int().positive(),
   blurb: z.string().min(1, "Say a little about why you recommend it"),

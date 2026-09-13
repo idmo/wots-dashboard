@@ -110,60 +110,278 @@ export function FeaturedReadersBoard({ initialReaders }: { initialReaders: Featu
       {initialReaders.length === 0 && !showNewReader ? null : (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {initialReaders.map((reader) => (
-            <Card key={reader.id}>
-              <CardBody className="space-y-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">{reader.name}</p>
-                    <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600">
-                      {reader.role}
-                    </span>
-                  </div>
-                  {(reader.city || reader.state) && (
-                    <p className="text-xs text-stone-400">
-                      {[reader.city, reader.state].filter(Boolean).join(", ")}
-                    </p>
-                  )}
-                  {reader.bio && <p className="text-xs text-stone-400">{reader.bio}</p>}
-                </div>
-
-                {reader.recommendations.length === 0 ? (
-                  <p className="text-sm text-stone-400">No recommendations yet.</p>
-                ) : (
-                  <ul className="space-y-3">
-                    {reader.recommendations.map((rec) => (
-                      <li key={rec.id} className="flex gap-3 border-t border-stone-100 pt-3 first:border-0 first:pt-0">
-                        <div className="flex h-16 w-11 flex-none items-center justify-center overflow-hidden rounded bg-stone-100 text-[8px] text-stone-400">
-                          {rec.book.thumbnailUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={rec.book.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            "No cover"
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="truncate text-sm font-medium">{rec.book.title}</p>
-                            {featuredPeriodLabel(rec) && (
-                              <span className="flex-none rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-                                {featuredPeriodLabel(rec)}
-                              </span>
-                            )}
-                          </div>
-                          <p className="truncate text-xs text-stone-400">
-                            {bookAuthorNames(rec.book) || rec.book.binding}
-                          </p>
-                          <p className="mt-1 whitespace-pre-wrap text-sm text-stone-700">{rec.blurb}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardBody>
-            </Card>
+            <ReaderCard key={reader.id} reader={reader} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ReaderCard({ reader }: { reader: FeaturedReader }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [editingRecId, setEditingRecId] = useState<number | null>(null);
+
+  if (editing) {
+    return (
+      <EditReaderForm
+        reader={reader}
+        onDone={() => {
+          setEditing(false);
+          router.refresh();
+        }}
+        onCancel={() => setEditing(false)}
+      />
+    );
+  }
+
+  return (
+    <Card>
+      <CardBody className="space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold">{reader.name}</p>
+              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600">
+                {reader.role}
+              </span>
+            </div>
+            {(reader.city || reader.state) && (
+              <p className="text-xs text-stone-400">
+                {[reader.city, reader.state].filter(Boolean).join(", ")}
+              </p>
+            )}
+            {reader.bio && <p className="text-xs text-stone-400">{reader.bio}</p>}
+          </div>
+          <Button size="md" variant="ghost" onClick={() => setEditing(true)}>
+            Edit
+          </Button>
+        </div>
+
+        {reader.recommendations.length === 0 ? (
+          <p className="text-sm text-stone-400">No recommendations yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {reader.recommendations.map((rec) =>
+              editingRecId === rec.id ? (
+                <li key={rec.id} className="border-t border-stone-100 pt-3 first:border-0 first:pt-0">
+                  <EditRecommendationForm
+                    rec={rec}
+                    onDone={() => {
+                      setEditingRecId(null);
+                      router.refresh();
+                    }}
+                    onCancel={() => setEditingRecId(null)}
+                  />
+                </li>
+              ) : (
+                <li key={rec.id} className="flex gap-3 border-t border-stone-100 pt-3 first:border-0 first:pt-0">
+                  <div className="flex h-16 w-11 flex-none items-center justify-center overflow-hidden rounded bg-stone-100 text-[8px] text-stone-400">
+                    {rec.book.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={rec.book.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      "No cover"
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="truncate text-sm font-medium">{rec.book.title}</p>
+                      <div className="flex flex-none items-center gap-1">
+                        {featuredPeriodLabel(rec) && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+                            {featuredPeriodLabel(rec)}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          className="text-xs text-stone-400 underline hover:text-stone-600"
+                          onClick={() => setEditingRecId(rec.id)}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                    <p className="truncate text-xs text-stone-400">
+                      {bookAuthorNames(rec.book) || rec.book.binding}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-stone-700">{rec.blurb}</p>
+                  </div>
+                </li>
+              )
+            )}
+          </ul>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
+function EditReaderForm({
+  reader,
+  onDone,
+  onCancel,
+}: {
+  reader: FeaturedReader;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(reader.name);
+  const [role, setRole] = useState(reader.role);
+  const [bio, setBio] = useState(reader.bio ?? "");
+  const [city, setCity] = useState(reader.city ?? "");
+  const [state, setState] = useState(reader.state ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = () => {
+    if (!name.trim()) {
+      setError("Name is required");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    fetch(`/api/featured-readers/${reader.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, role, bio, city, state }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(() => onDone())
+      .catch(() => setError("Couldn't save — try again."))
+      .finally(() => setSubmitting(false));
+  };
+
+  return (
+    <Card>
+      <CardBody className="space-y-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Edit featured reader</p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <input
+            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none sm:col-span-2"
+            placeholder="Name *"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <select
+            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            <option value="Customer">Customer</option>
+            <option value="Employee">Employee</option>
+          </select>
+          <input
+            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none sm:col-span-2"
+            placeholder="Bio (optional) — e.g. store manager"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
+          <input
+            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+            placeholder="City (optional)"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
+          <input
+            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+            placeholder="State (optional)"
+            value={state}
+            onChange={(e) => setState(e.target.value)}
+          />
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="flex gap-2">
+          <Button onClick={submit} disabled={submitting}>
+            {submitting ? "Saving…" : "Save"}
+          </Button>
+          <Button variant="ghost" onClick={onCancel} disabled={submitting}>
+            Cancel
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+function EditRecommendationForm({
+  rec,
+  onDone,
+  onCancel,
+}: {
+  rec: Recommendation;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [blurb, setBlurb] = useState(rec.blurb);
+  const [featuredMonth, setFeaturedMonth] = useState(rec.featuredMonth ?? new Date().getMonth() + 1);
+  const [featuredYear, setFeaturedYear] = useState(rec.featuredYear ?? new Date().getFullYear());
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = () => {
+    if (!blurb.trim()) {
+      setError("Add a few words on why they recommend it");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    fetch(`/api/book-recommendations/${rec.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ blurb, featuredMonth, featuredYear }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(() => onDone())
+      .catch(() => setError("Couldn't save — try again."))
+      .finally(() => setSubmitting(false));
+  };
+
+  return (
+    <div className="space-y-2 rounded-lg bg-stone-50 p-3">
+      <p className="text-xs font-medium text-stone-500">Editing recommendation for {rec.book.title}</p>
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-stone-500">Featured for</label>
+        <select
+          className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+          value={featuredMonth}
+          onChange={(e) => setFeaturedMonth(Number(e.target.value))}
+        >
+          {MONTH_NAMES.map((m, i) => (
+            <option key={m} value={i + 1}>
+              {m}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          className="touch-target w-24 rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+          value={featuredYear}
+          onChange={(e) => setFeaturedYear(Number(e.target.value) || featuredYear)}
+        />
+      </div>
+      <textarea
+        className="w-full rounded-lg border border-stone-300 px-3 py-2 focus:border-stone-900 focus:outline-none"
+        rows={3}
+        value={blurb}
+        onChange={(e) => setBlurb(e.target.value)}
+      />
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="flex gap-2">
+        <Button size="md" onClick={submit} disabled={submitting}>
+          {submitting ? "Saving…" : "Save"}
+        </Button>
+        <Button size="md" variant="ghost" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </Button>
+      </div>
     </div>
   );
 }
