@@ -1,0 +1,24 @@
+# Local/self-hosted Postgres for development, or as a starting point for a
+# Docker Compose deployment (e.g., on a Hostinger-style VPS). The app itself
+# is intentionally host-agnostic — see README.md for Vercel + managed
+# Postgres as the low-maintenance alternative.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: wots_orders
+    ports:
+      - "5432:5432"
+    volumes:
+      - wots_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  wots_db_data:
