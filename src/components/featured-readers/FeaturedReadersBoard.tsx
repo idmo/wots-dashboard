@@ -17,6 +17,8 @@ type Recommendation = {
   id: number;
   blurb: string;
   createdAt: Date;
+  featuredMonth: number | null;
+  featuredYear: number | null;
   book: Book;
 };
 type FeaturedReader = {
@@ -24,11 +26,33 @@ type FeaturedReader = {
   name: string;
   role: string;
   bio: string | null;
+  city: string | null;
+  state: string | null;
   recommendations: Recommendation[];
 };
 
 function bookAuthorNames(book: Book) {
   return book.bookAuthors.map((ba) => ba.author.name).join(", ");
+}
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function featuredPeriodLabel(rec: Recommendation) {
+  if (!rec.featuredMonth || !rec.featuredYear) return null;
+  return `${MONTH_NAMES[rec.featuredMonth - 1]} ${rec.featuredYear}`;
 }
 
 export function FeaturedReadersBoard({ initialReaders }: { initialReaders: FeaturedReader[] }) {
@@ -95,6 +119,11 @@ export function FeaturedReadersBoard({ initialReaders }: { initialReaders: Featu
                       {reader.role}
                     </span>
                   </div>
+                  {(reader.city || reader.state) && (
+                    <p className="text-xs text-stone-400">
+                      {[reader.city, reader.state].filter(Boolean).join(", ")}
+                    </p>
+                  )}
                   {reader.bio && <p className="text-xs text-stone-400">{reader.bio}</p>}
                 </div>
 
@@ -113,7 +142,14 @@ export function FeaturedReadersBoard({ initialReaders }: { initialReaders: Featu
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{rec.book.title}</p>
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="truncate text-sm font-medium">{rec.book.title}</p>
+                            {featuredPeriodLabel(rec) && (
+                              <span className="flex-none rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+                                {featuredPeriodLabel(rec)}
+                              </span>
+                            )}
+                          </div>
                           <p className="truncate text-xs text-stone-400">
                             {bookAuthorNames(rec.book) || rec.book.binding}
                           </p>
@@ -136,6 +172,8 @@ function NewReaderForm({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("Customer");
   const [bio, setBio] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -149,7 +187,7 @@ function NewReaderForm({ onDone }: { onDone: () => void }) {
     fetch("/api/featured-readers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, role, bio }),
+      body: JSON.stringify({ name, role, bio, city, state }),
     })
       .then((r) => {
         if (!r.ok) throw new Error();
@@ -180,10 +218,22 @@ function NewReaderForm({ onDone }: { onDone: () => void }) {
             <option value="Employee">Employee</option>
           </select>
           <input
-            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none sm:col-span-2"
             placeholder="Bio (optional) — e.g. store manager"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
+          />
+          <input
+            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+            placeholder="City (optional)"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
+          <input
+            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+            placeholder="State (optional)"
+            value={state}
+            onChange={(e) => setState(e.target.value)}
           />
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -206,6 +256,8 @@ function NewRecommendationForm({
 }) {
   const [featuredReaderId, setFeaturedReaderId] = useState<number | "">(readers[0]?.id ?? "");
   const [blurb, setBlurb] = useState("");
+  const [featuredMonth, setFeaturedMonth] = useState(() => new Date().getMonth() + 1);
+  const [featuredYear, setFeaturedYear] = useState(() => new Date().getFullYear());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -299,6 +351,8 @@ function NewRecommendationForm({
       body: JSON.stringify({
         featuredReaderId,
         blurb,
+        featuredMonth,
+        featuredYear,
         ...(selectedBook
           ? { bookId: selectedBook.id }
           : {
@@ -336,6 +390,27 @@ function NewRecommendationForm({
             </option>
           ))}
         </select>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-stone-500">Featured for</label>
+          <select
+            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+            value={featuredMonth}
+            onChange={(e) => setFeaturedMonth(Number(e.target.value))}
+          >
+            {MONTH_NAMES.map((m, i) => (
+              <option key={m} value={i + 1}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            className="touch-target w-24 rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+            value={featuredYear}
+            onChange={(e) => setFeaturedYear(Number(e.target.value) || featuredYear)}
+          />
+        </div>
 
         {!selectedBook ? (
           <div className="space-y-2">

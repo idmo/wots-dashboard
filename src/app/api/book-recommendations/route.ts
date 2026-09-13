@@ -55,12 +55,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const now = new Date();
   const [recommendation] = await db
     .insert(schema.bookRecommendations)
     .values({
       featuredReaderId: input.featuredReaderId,
       bookId,
       blurb: input.blurb,
+      featuredMonth: input.featuredMonth ?? now.getMonth() + 1,
+      featuredYear: input.featuredYear ?? now.getFullYear(),
     })
     .returning();
 

@@ -118,12 +118,19 @@ export const featuredReaders = pgTable("featured_readers", {
   name: varchar("name", { length: 255 }).notNull(),
   role: varchar("role", { length: 50 }).notNull().default("Customer"), // e.g. "Customer" | "Employee" — free text, not a strict enum
   bio: varchar("bio", { length: 255 }), // optional, e.g. "Store manager" / "Regular since 2019"
+  city: varchar("city", { length: 120 }),
+  state: varchar("state", { length: 60 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// One long-form recommendation from one featured reader for one book.
-// Multiple readers can each recommend the same book for different reasons —
-// that's the point, so there's no uniqueness constraint on (reader, book).
+// One long-form recommendation from one featured reader for one book —
+// this is the in-store "Featured Reader" shelf (books we stock or order
+// specifically for that display), not the algorithmic Recommendations
+// page. Multiple readers can each recommend the same book for different
+// reasons — that's the point, so there's no uniqueness constraint on
+// (reader, book). featuredMonth/featuredYear track which display period
+// this particular pick belongs to, since the same reader can be featured
+// again later with different books.
 export const bookRecommendations = pgTable("book_recommendations", {
   id: serial("id").primaryKey(),
   featuredReaderId: integer("featured_reader_id")
@@ -133,6 +140,8 @@ export const bookRecommendations = pgTable("book_recommendations", {
     .notNull()
     .references(() => books.id, { onDelete: "cascade" }),
   blurb: text("blurb").notNull(),
+  featuredMonth: integer("featured_month"), // 1-12
+  featuredYear: integer("featured_year"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

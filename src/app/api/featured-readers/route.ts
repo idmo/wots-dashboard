@@ -25,10 +25,12 @@ export async function POST(request: NextRequest) {
   const input = parsed.data;
   const role = input.role?.trim() || "Customer";
   const bio = input.bio?.trim();
+  const city = input.city?.trim();
+  const state = input.state?.trim();
 
   const [reader] = await db
     .insert(schema.featuredReaders)
-    .values({ name: input.name, role, bio: bio || null })
+    .values({ name: input.name, role, bio: bio || null, city: city || null, state: state || null })
     .returning();
 
   return NextResponse.json({ featuredReader: reader }, { status: 201 });

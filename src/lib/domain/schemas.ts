@@ -48,12 +48,18 @@ export const featuredReaderInputSchema = z.object({
   name: z.string().min(1, "Name is required"),
   role: z.string().optional(),
   bio: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
 });
 
 export const bookRecommendationInputSchema = z.object({
   featuredReaderId: z.number().int().positive(),
   blurb: z.string().min(1, "Say a little about why you recommend it"),
   bookId: z.number().int().positive().optional(),
+  // Which display period (the in-store "Featured Reader" shelf) this pick
+  // belongs to. Defaults to the current month/year if not supplied.
+  featuredMonth: z.number().int().min(1).max(12).optional(),
+  featuredYear: z.number().int().min(2000).max(2100).optional(),
   // Manual entry fields, used when bookId is not supplied — same shape as
   // an order line item's manual book fields.
   title: z.string().optional(),
