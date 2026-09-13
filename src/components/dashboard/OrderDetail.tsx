@@ -153,6 +153,9 @@ export function OrderDetail({ order }: { order: Order }) {
                   </p>
                 )}
 
+                {/* Preorder/prepaid items may have a placeholder $0 price
+                    from the register — surface the price-lookup widget so
+                    staff can pin down and save the real published price. */}
                 {(item.isPreorder || order.isPrepaid) && (
                   <PriceLookup
                     itemId={item.id}

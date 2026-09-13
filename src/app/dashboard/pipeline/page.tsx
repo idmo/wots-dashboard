@@ -1,5 +1,11 @@
 "use client";
 
+// PO Pipeline (PRD 7.3): three views over the same flattened line-item
+// list — a status Kanban (click-to-advance), a sortable/filterable table
+// for bulk status changes, and a read-only "rekey" filter of Approved
+// items for manually rekeying into Basil POS/PO. Kanban card titles link
+// out to the printable hold-shelf pickup slip (/pickup-slip/[itemId]).
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -89,6 +95,8 @@ export default function PipelinePage() {
 
   const approvedItems = useMemo(() => items.filter((i) => i.status === "approved"), [items]);
 
+  // Clicking the active column again flips direction; clicking a different
+  // column switches to it, always starting ascending.
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -98,6 +106,8 @@ export default function PipelinePage() {
     }
   }
 
+  // statusFilter starts with every status checked (i.e. no filtering);
+  // unchecking a status chip hides those rows from the sortable table.
   function toggleStatusFilter(status: LineItemStatus) {
     setStatusFilter((prev) => {
       const next = new Set(prev);
@@ -107,6 +117,9 @@ export default function PipelinePage() {
     });
   }
 
+  // Applies the status filter, then sorts by whichever column/direction is
+  // active — recomputed only when the underlying data or the sort/filter
+  // state actually changes.
   const tableItems = useMemo(() => {
     const filtered = items.filter((i) => statusFilter.has(i.status));
     const dir = sortDir === "asc" ? 1 : -1;
@@ -424,6 +437,8 @@ export default function PipelinePage() {
   );
 }
 
+// Clickable <th> for the sortable table: shows a ▲/▼ indicator only on
+// the currently active column, otherwise a plain (dimmed) label.
 function SortHeader({
   label,
   sortKey,

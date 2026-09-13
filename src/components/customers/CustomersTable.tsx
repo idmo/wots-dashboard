@@ -1,5 +1,10 @@
 "use client";
 
+// Customers list with inline editing for back-office data cleanup (fix a
+// typo'd name, add/correct an email or phone number). CustomersTable
+// renders the read-only rows; Edit swaps a row for EditCustomerRow, which
+// PATCHes /api/customers/[id] on Save.
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

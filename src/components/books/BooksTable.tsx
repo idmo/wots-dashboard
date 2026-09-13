@@ -1,5 +1,10 @@
 "use client";
 
+// Books catalog table with inline "clean up the data" editing (PRD back-
+// office request: fix a misspelled title/author, or correct ISBN/price).
+// BooksTable renders the read-only rows; clicking Edit on a row swaps it
+// for EditBookRow, an inline form that PATCHes /api/books/[id] on Save.
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -114,6 +119,11 @@ function EditBookRow({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Re-runs the same OpenLibrary lookup used at registration, using
+  // whatever title/author are currently typed (so a corrected spelling
+  // gets a fresh shot at matching). Only fills in fields the lookup
+  // actually returned, and never overwrites without the staff member
+  // reviewing and clicking Save — nothing here is saved automatically.
   const refreshLookup = () => {
     if (!title.trim()) {
       setRefreshNote("Enter a title first");

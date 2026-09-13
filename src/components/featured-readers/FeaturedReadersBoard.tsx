@@ -1,5 +1,17 @@
 "use client";
 
+// Featured Readers board: people who leave long-form blurbs recommending
+// books for an in-store display (see schema.ts for why this is kept
+// separate from the algorithmic Recommendations page). Component map:
+//   FeaturedReadersBoard  — top-level list + the two "+ New…" toggles
+//   ReaderCard            — one reader, with their recommendations inline;
+//                           swaps to EditReaderForm / EditRecommendationForm
+//                           when its Edit button/link is clicked
+//   NewReaderForm         — add a reader
+//   NewRecommendationForm — add a recommendation: catalog search or manual
+//                           entry (same background OpenLibrary lookup
+//                           pattern as the register)
+
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
