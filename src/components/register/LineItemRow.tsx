@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 export type LineItemDraft = {
@@ -45,6 +45,19 @@ export function LineItemRow({
   onRemove: () => void;
 }) {
   const lastLookupKey = useRef<string>("");
+  const [priceCopied, setPriceCopied] = useState(false);
+
+  async function copyPrice() {
+    if (!item.unitPrice) return;
+    try {
+      await navigator.clipboard.writeText(item.unitPrice);
+      setPriceCopied(true);
+      setTimeout(() => setPriceCopied(false), 1500);
+    } catch {
+      // Clipboard API can be unavailable (permissions, non-HTTPS); the
+      // price is still visible in the field for the cashier to type manually.
+    }
+  }
 
   // Asynchronous background metadata lookup (PRD 3.2): fires once Title,
   // Author, and Binding are all present, and never blocks the cashier from
@@ -129,13 +142,24 @@ export function LineItemRow({
             value={item.isbn13}
             onChange={(e) => onChange({ ...item, isbn13: e.target.value })}
           />
-          <input
-            className="touch-target rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
-            placeholder="Price"
-            inputMode="decimal"
-            value={item.unitPrice}
-            onChange={(e) => onChange({ ...item, unitPrice: e.target.value })}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              className="touch-target min-w-[90px] flex-1 rounded-lg border border-stone-300 px-3 focus:border-stone-900 focus:outline-none"
+              placeholder="Price"
+              inputMode="decimal"
+              value={item.unitPrice}
+              onChange={(e) => onChange({ ...item, unitPrice: e.target.value })}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-none px-2 py-2 text-xs"
+              disabled={!item.unitPrice}
+              onClick={copyPrice}
+            >
+              {priceCopied ? "Copied!" : "Copy for Square"}
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <label className="text-sm text-stone-600">Qty</label>
             <input
