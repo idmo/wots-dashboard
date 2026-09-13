@@ -8,6 +8,12 @@ const NAV = [
   { href: "/dashboard/import", label: "Basil Import" },
 ];
 
+const CATALOG_NAV = [
+  { href: "/dashboard/customers", label: "Customers" },
+  { href: "/dashboard/books", label: "Books" },
+  { href: "/dashboard/authors", label: "Authors" },
+];
+
 export default function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   return (
     <div className="flex min-h-screen flex-1 flex-col lg:flex-row">
@@ -16,8 +22,22 @@ export default function DashboardLayout({ children }: LayoutProps<"/dashboard">)
           <p className="text-sm font-semibold">Word on the Street</p>
           <p className="text-xs text-stone-500">Back office</p>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible">
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-1 lg:flex-col lg:overflow-visible">
           {NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <p className="hidden px-6 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-stone-400 lg:block">
+          Catalog
+        </p>
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible">
+          {CATALOG_NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
