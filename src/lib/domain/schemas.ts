@@ -43,3 +43,23 @@ export const extendDeadlineSchema = z.object({
   orderItemId: z.number().int().positive(),
   extraDays: z.number().int().positive(),
 });
+
+export const featuredReaderInputSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  role: z.string().optional(),
+  bio: z.string().optional(),
+});
+
+export const bookRecommendationInputSchema = z.object({
+  featuredReaderId: z.number().int().positive(),
+  blurb: z.string().min(1, "Say a little about why you recommend it"),
+  bookId: z.number().int().positive().optional(),
+  // Manual entry fields, used when bookId is not supplied — same shape as
+  // an order line item's manual book fields.
+  title: z.string().optional(),
+  author: z.string().optional(),
+  binding: z.enum(["Paperback", "Hardcover"]).optional(),
+  isbn13: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  genre: z.string().optional(),
+});

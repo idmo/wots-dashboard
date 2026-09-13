@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq, or, ilike, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { orderInputSchema } from "@/lib/domain/schemas";
+import { findOrCreateBook } from "@/lib/domain/books";
 import type { OrderStatus } from "@/lib/domain/status";
 
 // GET /api/orders — staff lookup & management view (PRD 3.4), and the
@@ -68,49 +69,9 @@ export async function POST(request: NextRequest) {
     .returning();
 
   for (const item of input.items) {
-    let bookId = item.bookId;
-
+    const bookId = await findOrCreateBook(item);
     if (!bookId) {
-      if (!item.title || !item.binding) {
-        continue; // schema requires this via UI validation; defensive skip here
-      }
-      // De-dupe by ISBN-13 when we have one from lookup; otherwise create fresh.
-      let existingBook = item.isbn13
-        ? (
-            await db
-              .select()
-              .from(schema.books)
-              .where(eq(schema.books.isbn13, item.isbn13))
-              .limit(1)
-          )[0]
-        : undefined;
-
-      if (!existingBook) {
-        [existingBook] = await db
-          .insert(schema.books)
-          .values({
-            title: item.title,
-            binding: item.binding,
-            isbn13: item.isbn13 || null,
-            thumbnailUrl: item.thumbnailUrl || null,
-            retailPrice: item.unitPrice ? String(item.unitPrice) : null,
-            genre: item.genre || null,
-          })
-          .returning();
-
-        if (item.author) {
-          let [author] = await db
-            .select()
-            .from(schema.authors)
-            .where(eq(schema.authors.name, item.author))
-            .limit(1);
-          if (!author) {
-            [author] = await db.insert(schema.authors).values({ name: item.author }).returning();
-          }
-          await db.insert(schema.bookAuthors).values({ bookId: existingBook.id, authorId: author.id });
-        }
-      }
-      bookId = existingBook.id;
+      continue; // schema requires this via UI validation; defensive skip here
     }
 
     const quantity = item.quantity;

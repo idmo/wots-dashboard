@@ -109,6 +109,33 @@ export const orderItems = pgTable("order_items", {
   notes: text("notes"),
 });
 
+// Featured Readers — a person (customer or employee; the distinction is
+// just a display label, not a link to the `customers` table) who leaves
+// long-form book recommendations. Deliberately decoupled from `customers`
+// so entering one never touches real customer/order data or its metrics.
+export const featuredReaders = pgTable("featured_readers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  role: varchar("role", { length: 50 }).notNull().default("Customer"), // e.g. "Customer" | "Employee" — free text, not a strict enum
+  bio: varchar("bio", { length: 255 }), // optional, e.g. "Store manager" / "Regular since 2019"
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// One long-form recommendation from one featured reader for one book.
+// Multiple readers can each recommend the same book for different reasons —
+// that's the point, so there's no uniqueness constraint on (reader, book).
+export const bookRecommendations = pgTable("book_recommendations", {
+  id: serial("id").primaryKey(),
+  featuredReaderId: integer("featured_reader_id")
+    .notNull()
+    .references(() => featuredReaders.id, { onDelete: "cascade" }),
+  bookId: integer("book_id")
+    .notNull()
+    .references(() => books.id, { onDelete: "cascade" }),
+  blurb: text("blurb").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // --- Relations ---
 
 export const customersRelations = relations(customers, ({ many }) => ({
@@ -118,6 +145,7 @@ export const customersRelations = relations(customers, ({ many }) => ({
 export const booksRelations = relations(books, ({ many }) => ({
   bookAuthors: many(bookAuthors),
   orderItems: many(orderItems),
+  recommendations: many(bookRecommendations),
 }));
 
 export const authorsRelations = relations(authors, ({ many }) => ({
@@ -137,4 +165,16 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
   book: one(books, { fields: [orderItems.bookId], references: [books.id] }),
+}));
+
+export const featuredReadersRelations = relations(featuredReaders, ({ many }) => ({
+  recommendations: many(bookRecommendations),
+}));
+
+export const bookRecommendationsRelations = relations(bookRecommendations, ({ one }) => ({
+  featuredReader: one(featuredReaders, {
+    fields: [bookRecommendations.featuredReaderId],
+    references: [featuredReaders.id],
+  }),
+  book: one(books, { fields: [bookRecommendations.bookId], references: [books.id] }),
 }));
