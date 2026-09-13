@@ -3,6 +3,7 @@ import Link from "next/link";
 const NAV = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/orders", label: "Orders" },
+  { href: "/dashboard/recommendations", label: "Recommendations" },
   { href: "/dashboard/pipeline", label: "PO Pipeline" },
   { href: "/dashboard/hold-shelf", label: "Hold Shelf" },
   { href: "/dashboard/import", label: "Basil Import" },
