@@ -3,6 +3,7 @@ import { eq, and, isNotNull, lt } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { LineItemStatusBadge } from "@/components/ui/StatusBadge";
+import { PriceLookup } from "@/components/dashboard/PriceLookup";
 import { formatDateTime } from "@/lib/utils";
 
 // Hold shelf contents change constantly — never freeze this at build time.
@@ -41,17 +42,36 @@ export default async function HoldShelfPage() {
         <CardBody className="space-y-2">
           {receivedItems.length === 0 && <p className="text-sm text-stone-400">Nothing to set aside.</p>}
           {receivedItems.map((item) => (
-            <div key={item.id} className="flex items-center justify-between rounded-lg border border-teal-200 bg-teal-50 p-3">
-              <div>
-                <p className="font-medium">{item.book.title}</p>
-                <p className="text-xs text-stone-500">
-                  <Link href={`/dashboard/orders/${item.orderId}`} className="underline">
-                    #{item.orderId}
-                  </Link>{" "}
-                  · {item.order.customer.name} · Qty {item.quantity}
-                </p>
+            <div key={item.id} className="rounded-lg border border-teal-200 bg-teal-50 p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">
+                    {item.book.title}{" "}
+                    <Link
+                      href={`/pickup-slip/${item.id}`}
+                      target="_blank"
+                      className="text-xs font-normal text-blue-700 underline"
+                    >
+                      Print pickup slip ↗
+                    </Link>
+                  </p>
+                  <p className="text-xs text-stone-500">
+                    <Link href={`/dashboard/orders/${item.orderId}`} className="underline">
+                      #{item.orderId}
+                    </Link>{" "}
+                    · {item.order.customer.name} · Qty {item.quantity}
+                  </p>
+                </div>
+                <LineItemStatusBadge status={item.status} />
               </div>
-              <LineItemStatusBadge status={item.status} />
+              {(item.isPreorder || item.order.isPrepaid) && (
+                <PriceLookup
+                  itemId={item.id}
+                  title={item.book.title}
+                  isbn13={item.book.isbn13}
+                  initialPrice={item.unitPrice}
+                />
+              )}
             </div>
           ))}
         </CardBody>
@@ -71,7 +91,16 @@ export default async function HoldShelfPage() {
           {unclaimedExpired.map((item) => (
             <div key={item.id} className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-3">
               <div>
-                <p className="font-medium">{item.book.title}</p>
+                <p className="font-medium">
+                  {item.book.title}{" "}
+                  <Link
+                    href={`/pickup-slip/${item.id}`}
+                    target="_blank"
+                    className="text-xs font-normal text-blue-700 underline"
+                  >
+                    Print pickup slip ↗
+                  </Link>
+                </p>
                 <p className="text-xs text-stone-500">
                   <Link href={`/dashboard/orders/${item.orderId}`} className="underline">
                     #{item.orderId}

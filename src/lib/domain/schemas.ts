@@ -30,9 +30,17 @@ export const orderInputSchema = z.object({
   items: z.array(orderItemInputSchema).min(1, "Add at least one book"),
 });
 
-export const lineItemStatusUpdateSchema = z.object({
-  status: z.enum(LINE_ITEM_STATUSES),
-});
+// PATCH /api/order-items/[id] — staff update a single line item's status
+// and/or its unit price (e.g. filling in the correct published price for
+// a preorder/prepaid item once looked up). At least one field is required.
+export const orderItemUpdateSchema = z
+  .object({
+    status: z.enum(LINE_ITEM_STATUSES).optional(),
+    unitPrice: z.number().nonnegative().optional(),
+  })
+  .refine((data) => data.status !== undefined || data.unitPrice !== undefined, {
+    message: "Provide status and/or unitPrice",
+  });
 
 export const bulkLineItemStatusUpdateSchema = z.object({
   orderItemIds: z.array(z.number().int().positive()).min(1),

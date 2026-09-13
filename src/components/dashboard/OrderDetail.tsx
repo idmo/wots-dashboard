@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { LineItemStatusBadge, OrderStatusBadge, PreorderPrepaidTags } from "@/components/ui/StatusBadge";
+import { PriceLookup } from "@/components/dashboard/PriceLookup";
 import { formatCurrency, formatDateTime, cx } from "@/lib/utils";
 import {
   nextLineItemStatuses,
@@ -150,6 +151,16 @@ export function OrderDetail({ order }: { order: Order }) {
                       Extend
                     </button>
                   </p>
+                )}
+
+                {(item.isPreorder || order.isPrepaid) && (
+                  <PriceLookup
+                    itemId={item.id}
+                    title={item.book.title}
+                    isbn13={item.book.isbn13}
+                    initialPrice={item.unitPrice}
+                    onSaved={refresh}
+                  />
                 )}
 
                 {next.length > 0 && (

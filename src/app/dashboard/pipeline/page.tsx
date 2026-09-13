@@ -222,7 +222,16 @@ export default function PipelinePage() {
                   .map((item) => (
                     <Card key={item.id} className="text-xs">
                       <CardBody className="space-y-1 p-2">
-                        <p className="font-medium">{item.title}</p>
+                        <p className="font-medium">
+                          <Link
+                            href={`/pickup-slip/${item.id}`}
+                            target="_blank"
+                            className="hover:underline"
+                            title="Print pickup slip"
+                          >
+                            {item.title}
+                          </Link>
+                        </p>
                         <p className="text-stone-400">
                           #{item.orderId} · {item.customerName}
                         </p>
