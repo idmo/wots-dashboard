@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { CustomerPanel, type Customer, type NewCustomerDraft } from "@/components/register/CustomerPanel";
 import { LineItemRow, emptyLineItem, type LineItemDraft } from "@/components/register/LineItemRow";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { formatCurrency } from "@/lib/utils";
 
 let nextKey = 1;
@@ -99,9 +100,12 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-bold">Special Order</h1>
           <p className="text-sm text-stone-500">Word on the Street Books — register</p>
         </div>
-        <Link href="/dashboard" className="text-sm font-medium text-stone-500 underline underline-offset-2">
-          Back office →
-        </Link>
+        <div className="flex items-center gap-3 text-sm">
+          <Link href="/dashboard" className="font-medium text-stone-500 underline underline-offset-2">
+            Back office →
+          </Link>
+          <LogoutButton className="text-stone-400 underline underline-offset-2" />
+        </div>
       </header>
 
       {successOrderId && (

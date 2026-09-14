@@ -6,6 +6,11 @@
 # than editing the hardcoded default — especially before this is reachable
 # from the open internet.
 #   echo "POSTGRES_PASSWORD=something-long-and-random" > .env
+#
+# Set SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD in that same .env before the
+# first `docker compose up` — that's how the very first staff login gets
+# created (see src/instrumentation.ts and .env.example for the rest of the
+# auth-related variables).
 services:
   db:
     image: postgres:16-alpine
@@ -37,6 +42,14 @@ services:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/wots_orders
       INGRAM_MOCK: "true"
       BASIL_MOCK: "true"
+      ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN:-wordonthestreetbooks.com}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      EMAIL_MOCK: ${EMAIL_MOCK:-true}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-Word on the Street Books}
     ports:
       - "3000:3000"
 

@@ -14,6 +14,8 @@ import { relations } from "drizzle-orm";
 
 export const bindingEnum = pgEnum("binding", ["Paperback", "Hardcover"]);
 
+export const userRoleEnum = pgEnum("user_role", ["staff", "superadmin"]);
+
 export const orderStatusEnum = pgEnum("order_status", [
   "pending",
   "submitted_to_supplier",
@@ -145,6 +147,50 @@ export const bookRecommendations = pgTable("book_recommendations", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// --- Auth ---
+// Staff accounts. Restricted to @<domain> emails at creation time (see
+// src/lib/auth/constants.ts / ALLOWED_EMAIL_DOMAIN) — enforced in
+// application code, not the database, so the domain is easy to change
+// later without a migration.
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: userRoleEnum("role").notNull().default("staff"),
+  // True immediately after a superadmin creates the account (or resets its
+  // password) — forces a password change before the rest of the app is
+  // reachable. See src/proxy.ts.
+  mustChangePassword: boolean("must_change_password").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// One row per logged-in browser. The cookie holds a random opaque token;
+// only its SHA-256 hash is stored here, so a leaked database dump alone
+// can't be replayed as a valid session cookie (see src/lib/auth/password.ts
+// hashToken, and src/proxy.ts which is the only place this table is read).
+export const sessions = pgTable("sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Short-lived "forgot password" codes, emailed to the user. Same
+// hash-before-storing approach as sessions above.
+export const passwordResetCodes = pgTable("password_reset_codes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  codeHash: varchar("code_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // --- Relations ---
 
 export const customersRelations = relations(customers, ({ many }) => ({
@@ -186,4 +232,17 @@ export const bookRecommendationsRelations = relations(bookRecommendations, ({ on
     references: [featuredReaders.id],
   }),
   book: one(books, { fields: [bookRecommendations.bookId], references: [books.id] }),
+}));
+
+export const usersRelations = relations(users, ({ many }) => ({
+  sessions: many(sessions),
+  passwordResetCodes: many(passwordResetCodes),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
+}));
+
+export const passwordResetCodesRelations = relations(passwordResetCodes, ({ one }) => ({
+  user: one(users, { fields: [passwordResetCodes.userId], references: [users.id] }),
 }));
